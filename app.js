@@ -28,7 +28,7 @@ app.use(cookieParser());
 
 
 // Databse Connection
-mongoose.connect(`${process.env.URI}`)
+mongoose.connect(process.env.URI)
  .then(() => console.log(clc.white.bgGreen.underline("Connected to Database")))
  .catch((err) => console.log(clc.bgRed(err)));
 
