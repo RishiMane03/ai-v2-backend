@@ -28,7 +28,7 @@ app.use(cookieParser());
 
 
 // Databse Connection
-mongoose.connect(process.env.URI)
+mongoose.connect(`${process.env.URI}`)
  .then(() => console.log(clc.white.bgGreen.underline("Connected to Database")))
  .catch((err) => console.log(clc.bgRed(err)));
 
@@ -44,7 +44,7 @@ app.get('/yo', (req, res) => {
 });
 
 app.post('/register', async(req, res)=>{
-    // console.log('req.body is >> ',req.body);
+    console.log('req.body is >> ',req.body)
     const { name, email, username, password } = req.body;
 
     // Data validation
@@ -137,7 +137,7 @@ app.post('/signIn', async (req, res) => {
         }
 
         // Session Authentication
-        
+
 
         // find the userData from database
         const userDataObj = await userModel.find({ name })
