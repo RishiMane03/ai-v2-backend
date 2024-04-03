@@ -13,6 +13,10 @@ require("dotenv").config();
 const summarizeParagraph = require('./utils/summaryUtils');
 const { userDataValidation } = require('./utils/authUtils');
 const userModel = require('./models/userModel');
+const solution = require('./utils/codeUtils');
+const saveChatModel = require('./models/saveChatModel');
+const questions = require('./utils/questionsUtils');
+const pdfDoubt = require('./utils/pdfDoubt');
 
 // Variables
 const app = express();
@@ -174,6 +178,95 @@ app.post('/summarize', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error'});
     }
 });
+
+// code
+app.post('/getCode', async (req, res) => {
+    console.log('code api running')
+    const { language,inputedCode } = req.body;
+    console.log(language,inputedCode);
+    
+    try {
+        const codeSolution = await solution(language,inputedCode);
+        res.send({ codeSolution });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// chat
+app.post('/saveChat', async (req,res)=>{
+    try {
+        const { allMessages, userIdToken } = req.body;
+
+        // Save all messages to MongoDB
+        await saveChatModel.insertMany(allMessages, { ordered: false }); //We use insertMany() to save all messages to the database. The { ordered: false } option tells MongoDB to continue inserting documents even if errors occur, allowing us to ignore duplicates.
+        res.status(200).send({ message: 'Messages saved successfully' });
+
+        
+    } 
+    catch (error) {
+        /*
+            In MongoDB, when you attempt to insert a document with a field value that 
+            violates a unique index constraint, MongoDB will throw a duplicate key error. 
+            This error has a specific error code associated with it, which is 11000. 
+        */
+            if (error.code === 11000) {
+                console.error('Duplicate message detected:', error);
+                res.status(400).send({ error: 'Duplicate message' });
+            } else {
+                console.error('Error saving messages:', error);
+                res.status(500).send({ error: 'Internal server error' });
+            }
+    }
+})
+
+// chat : previous chats
+app.get('/getAllChats', async (req, res) => {
+    try {
+        const allChats = await saveChatModel.find();
+        res.status(200).send(allChats);
+    } catch (error) {
+        console.error('Error fetching all chats:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
+// PDF : getSummary
+app.post('/pdfSummary', async (req, res) => {
+    const { pdfContent } = req.body;
+    // console.log(paragraph);
+    
+    try {
+        const summary = await summarizeParagraph(pdfContent);
+        res.send({ summary });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// PDF : getQuestions
+app.post('/pdfQuestions', async(req,res) =>{
+    const { pdfContent } = req.body;
+    try {
+        const allQuestions = await questions(pdfContent);
+        res.send({ allQuestions });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+// PDF askDoubt
+app.post('/askDoubt', async(req,res) =>{
+    console.log('im inside ask doubt');
+    const { pdfContent } = req.body;
+    const { question } = req.body;
+    try {
+        const ansToDoubt = await pdfDoubt(pdfContent,question);
+        res.send({ ansToDoubt });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
 
 app.listen(port, () => {
     console.log(clc.white.bgGreen.underline(`Server running on port http://localhost:${port}`));
